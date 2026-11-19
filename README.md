@@ -55,8 +55,8 @@ Internet Gateway는 VPC와 인터넷 사이의 게이트웨이 역할을 수행�
 Route Table에서 0.0.0.0/0 → Internet Gateway 경로를 설정해 인터넷 트래픽이 VPC 내부로 전달되도록 구성했습니다. 이것이 있어야 Public Subnet 내 인스턴스가 외부 네트워크와 통신할 수 있습니다.
 
 ### 3-5. EC2 인스턴스
-- 인스턴스 유형: t3.micro 또는 t2.micro (프리티어/실습용)
-- OS: Ubuntu 22.04 LTS
+- 인스턴스 유형: t3.micro (프리티어/실습용)
+- OS: Ubuntu, 26.04
 - 포트 공개: 80/TCP
 - SSH: 본인 IP에서만 허용
 - 웹 서버: Nginx 설치 및 실행
@@ -182,6 +182,7 @@ AWS 콘솔 메뉴 경로:
 인바운드 규칙:
 - HTTP: `80` / `0.0.0.0/0`
 - SSH: `22` / 본인 IP 또는 지정된 관리망
+                121.135.181.44
 
 주의 사항:
 - `0.0.0.0/0` 전체 포트 허용 규칙은 추가하지 않음
@@ -197,8 +198,8 @@ AWS 콘솔 메뉴 경로:
 
 설정 예시:
 - Name: `web-server`
-- Amazon Machine Image (AMI): Ubuntu Server LTS
-- Instance type: `t3.micro` 또는 `t2.micro`
+- Amazon Machine Image (AMI): Amazon Linux 2023 프리티어
+- Instance type: `t3.micro` 
 - Key pair: `cloud-lab-key`
 - Network settings:
   - VPC: `lab-vpc`
@@ -208,15 +209,15 @@ AWS 콘솔 메뉴 경로:
 - Storage: 8~10 GiB
 
 생성 후 인스턴스 ID와 Public IPv4 주소를 기록합니다.
-i-0905b4c5862cef000
-54.206.116.166
+i-0f67fdbe2276bf38a (web-server)
+16.178.228.18
 
 ### 4-8. EC2 접속 및 웹 서버 설치
 
 SSH 접속 명령 예시:
 
 ```bash
-ssh -i cloud-lab-key.pem ubuntu@<Public-IP>
+ssh -i cloud-lab-key.pem ec2-user@<Public-IP>
 ```
 
 인스턴스 내부에서 Nginx 설치:
