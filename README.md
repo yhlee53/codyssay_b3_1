@@ -7,6 +7,10 @@
 핵심 목표는 단순히 웹 애플리케이션을 실행하는 것이 아니라, 실제 클라우드 운영에서 필수적인 네트워크 격리, 최소 권한 보안, 외부 접근 경로 설계, 문제 해결 능력을 학습하는 것입니다.
 
 - 리전: ap-northeast-2 (서울)
+- 인스턴스: `i-0f67fdbe2276bf38a` (`web-server`)
+- VPC: `vpc-0dd585c4b0581e594`
+- Subnet: `subnet-0b1945ab44eae2608`
+- Security Group: `sg-006f497ca2061e3c0` (`default`)
 - 네트워크 구조: VPC + Public Subnet + Internet Gateway + Route Table
 - 애플리케이션: Nginx 웹 서버
 - 접근 방식: 외부 HTTP 요청을 Public EC2로 전달
@@ -56,9 +60,11 @@ Route Table에서 0.0.0.0/0 → Internet Gateway 경로를 설정해 인터넷 �
 
 ### 3-5. EC2 인스턴스
 - 인스턴스 유형: t3.micro (프리티어/실습용)
-- OS: Ubuntu, 26.04
+- OS: Amazon Linux 2023
 - 포트 공개: 80/TCP
 - SSH: 본인 IP에서만 허용
+- 접속 계정: ec2-user
+- 패키지 관리자: dnf
 - 웹 서버: Nginx 설치 및 실행
 
 ### 3-6. Security Group
@@ -116,7 +122,7 @@ AWS 콘솔 메뉴 경로:
 - IPv4 CIDR block: `10.0.0.0/16`
 - Tenancy: Default
 
-생성 후 VPC ID를 기록합니다. vpc-0a082d99085060c21
+실제 VPC ID: `vpc-08ff8511b6dca33c0`
 
 ### 4-3. Public Subnet 생성
 
@@ -124,10 +130,12 @@ AWS 콘솔 메뉴 경로:
 - VPC > Subnets > Create subnet
 
 설정 예시:
-- VPC: `lab-vpc`
-- Subnet name: `public-subnet`
+- VPC: `vpc-0dd585c4b0581e594`
+- Subnet name: `cd `
 - Availability Zone: `ap-northeast-2a`
 - IPv4 CIDR: `10.0.1.0/24`
+
+실제 Subnet ID: `subnet-014ff9ae1d378cf0a`
 
 다음 항목을 확인합니다.
 - 서브넷이 VPC에 연결되어 있는지
@@ -144,7 +152,7 @@ AWS 콘솔 메뉴 경로:
 생성 후 다음 절차를 수행합니다.
 1. 생성된 IGW 선택
 2. Actions > Attach to VPC
-3. 연결할 VPC 선택: `lab-vpc`
+3. 연결할 VPC 선택: `vpc-0dd585c4b0581e594`
 
 이 단계가 완료되어야 인터넷과 VPC 사이의 연결 경로가 활성화됩니다.
 
@@ -155,37 +163,37 @@ AWS 콘솔 메뉴 경로:
 
 설정 예시:
 - Name: `public-route-table`
-- VPC: `lab-vpc`
+- VPC: `vpc-0dd585c4b0581e594`
 
 다음으로 Route 추가:
 - Destination: `0.0.0.0/0`
-- Target: Internet Gateway (`lab-igw`)
+- Target: Internet Gateway (`lab-igw`) local
 
-그리고 Public Subnet을 해당 Route Table에 연결합니다.
+그리고 실제 Public Subnet을 해당 Route Table에 연결합니다.
 - Subnet associations > Edit subnet associations
-- `public-subnet` 선택
+- `subnet-0b1945ab44eae2608` 선택
 
 추가로 확인해야 하는 핵심 점은 다음입니다.
 - 0.0.0.0/0 경로가 존재하는지
-- Public Subnet이 연결된 route table이 맞는지
+- 실제 Subnet이 연결된 route table이 맞는지
 
 ### 4-6. Security Group 생성
 
 AWS 콘솔 메뉴 경로:
 - EC2 > Security Groups > Create security group
 
-설정 예시:
-- Name: `web-sg`
-- Description: `Public web access only`
-- VPC: `lab-vpc`
+실제 Security Group:
+- Name: `lab-sg`
+- Security Group ID: `sg-006f497ca2061e3c0`
+- VPC: `vpc-0dd585c4b0581e594`
 
 인바운드 규칙:
 - HTTP: `80` / `0.0.0.0/0`
 - SSH: `22` / 본인 IP 또는 지정된 관리망
-                121.135.181.44
+  - `121.135.181.44/32`
 
 주의 사항:
-- `0.0.0.0/0` 전체 포트 허용 규칙은 추가하지 않음
+- `0.0.0.0/0` 전체 포트 허용 규칙은 사용하지 않음
 - 운영용으로 SSH는 반드시 본인 IP로 제한
 
 아웃바운드 규칙:
@@ -199,18 +207,25 @@ AWS 콘솔 메뉴 경로:
 설정 예시:
 - Name: `web-server`
 - Amazon Machine Image (AMI): Amazon Linux 2023 프리티어
-- Instance type: `t3.micro` 
+- Instance type: `t3.micro`
 - Key pair: `cloud-lab-key`
 - Network settings:
-  - VPC: `lab-vpc`
-  - Subnet: `public-subnet`
+  - VPC: `vpc-0dd585c4b0581e594`
+  - Subnet: `subnet-0b1945ab44eae2608`
   - Auto-assign public IP: Enable
-  - Security group: `web-sg`
+  - Security group: `sg-006f497ca2061e3c0` (`default`)
 - Storage: 8~10 GiB
 
-생성 후 인스턴스 ID와 Public IPv4 주소를 기록합니다.
-i-0f67fdbe2276bf38a (web-server)
-16.178.228.18
+생성 후 인스턴스 정보를 확인합니다.
+- 인스턴스 ID: `i-01386272b6d7d8cd5`
+- 인스턴스 이름: `web-server`
+- Public IPv4 주소: 실제 할당된 값 또는 Elastic IP
+
+
+서브넷을 퍼블릭 서브넷으로 만들려면 
+서브넷 라우팅 테이블의 경로를 
+인터넷 게이트웨이에 추가하세요.
+
 
 ### 4-8. EC2 접속 및 웹 서버 설치
 
@@ -220,11 +235,11 @@ SSH 접속 명령 예시:
 ssh -i cloud-lab-key.pem ec2-user@<Public-IP>
 ```
 
-인스턴스 내부에서 Nginx 설치:
+인스턴스 내부에서 Nginx를 설치하고 실행합니다.
 
 ```bash
-sudo apt update
-sudo apt install nginx -y
+sudo dnf update -y
+sudo dnf install nginx -y
 sudo systemctl enable --now nginx
 ```
 
@@ -232,6 +247,7 @@ sudo systemctl enable --now nginx
 
 ```bash
 curl -i http://localhost
+sudo systemctl status nginx
 ```
 
 정상 응답 예시:
@@ -245,9 +261,10 @@ Server: nginx/1.24.0
 
 Nginx에서 `/health` 경로를 정상 응답하도록 설정하면 외부 모니터링/검증이 쉬워집니다.
 
-예시 설정:
+Amazon Linux 2023에서는 `/etc/nginx/conf.d/` 아래에 설정 파일을 생성합니다.
 
-```nginx
+```bash
+sudo tee /etc/nginx/conf.d/health.conf > /dev/null <<'EOF'
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -264,11 +281,8 @@ server {
         return 200 'OK\n';
     }
 }
-```
+EOF
 
-설정 반영:
-
-```bash
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -283,6 +297,7 @@ curl -i http://localhost/health
 
 ```text
 HTTP/1.1 200 OK
+Content-Type: text/plain
 
 OK
 ```
@@ -292,7 +307,7 @@ OK
 브라우저 또는 터미널에서 다음을 실행해 외부 접근이 가능한지 확인합니다.
 
 ```bash
-curl -i http://<Public-IP>/health
+curl -i http://52.65.65.236/health
 ```
 
 예상 결과:
@@ -477,6 +492,350 @@ server {
 
 ---
 
-## 12. 참고
+## 12. AWS CLI 자동 생성 및 삭제
+
+생성 및 삭제 명령을 반복해서 사용할 수 있도록 스크립트로 저장했습니다.
+
+- 생성 스크립트: `scripts/aws-lab-up.sh`
+- 삭제 스크립트: `scripts/aws-lab-down.sh`
+- 생성 리소스 상태 파일: `.aws-lab.env`
+
+생성 스크립트는 다음 리소스를 생성합니다.
+
+- VPC: `10.0.0.0/16`
+- Public Subnet: `10.0.1.0/24`
+- Internet Gateway
+- Public Route Table과 `0.0.0.0/0 -> IGW` 경로
+- Security Group
+- EC2 Key Pair
+- Amazon Linux 2023 EC2 인스턴스
+- Nginx와 `/health` 엔드포인트
+
+### 12-1. AWS CLI 준비
+
+현재 폴더의 로컬 AWS CLI를 사용하려면 다음 경로를 PATH에 추가합니다.
+
+```bash
+export PATH="$PWD/.aws-cli-bin:$PATH"
+aws --version
+```
+
+AWS 계정 인증이 필요합니다.
+
+```bash
+aws login
+aws sts get-caller-identity
+```
+
+기존 Access Key 방식이라면 다음 명령을 사용합니다.
+
+```bash
+aws configure
+```
+
+입력 값 예시:
+
+```text
+AWS Access Key ID: <IAM 사용자의 Access Key ID>
+AWS Secret Access Key: <IAM 사용자의 Secret Access Key>
+Default region name: ap-northeast-2
+Default output format: json
+```
+
+### 12-2. 환경 생성
+
+실행 권한은 이미 설정되어 있습니다.
+
+```bash
+./scripts/aws-lab-up.sh
+```
+
+생성 과정이 끝나면 `.aws-lab.env` 파일에 다음 값이 저장됩니다.
+
+```text
+VPC_ID
+SUBNET_ID
+IGW_ID
+RTB_ID
+SG_ID
+INSTANCE_ID
+PUBLIC_IP
+KEY_NAME
+```
+
+생성 상태를 확인합니다.
+
+```bash
+source .aws-lab.env
+
+aws ec2 describe-instances \
+  --instance-ids "$INSTANCE_ID" \
+  --query 'Reservations[0].Instances[0].[InstanceId,State.Name,PublicIpAddress]' \
+  --output table
+```
+
+### 12-3. EC2 테스트
+
+헬스 체크 엔드포인트를 테스트합니다.
+
+```bash
+source .aws-lab.env
+curl --retry 12 --retry-delay 10 -i "http://$PUBLIC_IP/health"
+```
+
+정상 응답:
+
+```text
+HTTP/1.1 200 OK
+Content-Type: text/plain
+
+OK
+```
+
+SSH 접속을 테스트합니다.
+
+```bash
+source .aws-lab.env
+ssh -i cloud-lab-key.pem ec2-user@"$PUBLIC_IP"
+```
+
+### 12-4. 인스턴스 중지 및 재시작
+
+인스턴스만 중지하려면 다음 명령을 실행합니다.
+
+```bash
+source .aws-lab.env
+aws ec2 stop-instances --instance-ids "$INSTANCE_ID"
+aws ec2 wait instance-stopped --instance-ids "$INSTANCE_ID"
+```
+
+인스턴스를 다시 시작합니다.
+
+```bash
+source .aws-lab.env
+aws ec2 start-instances --instance-ids "$INSTANCE_ID"
+aws ec2 wait instance-running --instance-ids "$INSTANCE_ID"
+
+PUBLIC_IP=$(aws ec2 describe-instances \
+  --instance-ids "$INSTANCE_ID" \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' \
+  --output text)
+
+echo "$PUBLIC_IP"
+```
+
+재시작 시 퍼블릭 IPv4 주소가 변경될 수 있습니다.
+
+### 12-5. 전체 리소스 삭제
+
+생성된 실습 리소스를 역순으로 삭제합니다.
+
+```bash
+./scripts/aws-lab-down.sh
+```
+
+삭제 스크립트는 다음 순서로 리소스를 정리합니다.
+
+1. EC2 인스턴스 종료 대기
+2. Subnet과 Route Table의 명시적 연결 해제
+3. Security Group 삭제
+4. Subnet 삭제
+5. Route Table 삭제
+6. Internet Gateway를 VPC에서 분리 후 삭제
+7. VPC 삭제
+8. EC2 Key Pair 및 로컬 프라이빗 키 삭제
+
+삭제 후 확인합니다.
+
+```bash
+source .aws-lab.env 2>/dev/null || true
+
+aws ec2 describe-vpcs \
+  --filters Name=tag:Name,Values=lab-vpc \
+  --query 'Vpcs[].VpcId'
+
+aws ec2 describe-instances \
+  --filters Name=tag:Name,Values=web-server \
+  --query 'Reservations[].Instances[].{ID:InstanceId,State:State.Name}'
+```
+
+`source` 전에 `.aws-lab.env`가 삭제될 수 있으므로 삭제 확인 명령은 독립적으로 실행해도 됩니다.
+
+---
+
+## 13. 참고
 
 본 저장소는 실습 문서 정리용 결과물로 구성되며, 실제 AWS 실제 계정과 연결되어 있지 않습니다. 실제 운영 환경에서는 AWS 콘솔에서 값과 리소스 상태를 직접 확인하고, 배포/정리 절차를 반복하면서 안전하게 진행하는 것이 중요합니다.
+
+#### IAM 권한 설정
+
+현재 사용자는 AWS CLI 자격 증명은 정상적으로 인증되지만, EC2/VPC 리소스를 생성할 권한이 없습니다.
+다음 오류가 발생하면 IAM 정책 연결이 필요합니다.
+
+```text
+UnauthorizedOperation: You are not authorized to perform: ec2:CreateVpc
+```
+
+AWS 콘솔에서 다음 순서로 권한을 부여합니다.
+
+1. AWS 콘솔에 관리자 권한으로 로그인
+2. **IAM → Policies → Create policy** 이동
+3. **JSON** 선택
+4. `docs/aws-lab-iam-policy.json`의 내용을 붙여넣기
+5. 정책 이름을 `AWSLabCliPolicy`로 지정하고 생성
+6. **IAM → Users → cloud-lab-user → Permissions → Add permissions** 이동
+7. **Attach policies directly** 선택
+8. `AWSLabCliPolicy` 연결
+9. 콘솔 또는 다음 명령으로 권한과 인증을 확인
+
+```bash
+aws sts get-caller-identity
+```
+
+권한은 필요한 리소스 범위로 제한하는 것이 좋습니다. 실습이 끝나면 정책을 분리하거나 사용자와 정책을 삭제할 수 있습니다.
+
+액세스 키는 CSV 파일이 아닌 AWS CLI 자격 증명 파일로만 보관합니다.
+
+```bash
+aws configure
+chmod 600 ~/.aws/credentials ~/.aws/config
+```
+
+권한 적용 후 생성 스크립트를 다시 실행합니다.
+
+```bash
+./scripts/aws-lab-up.sh
+```
+
+---
+
+## 14. 웹 서비스 설치 위치
+
+Linux에서 웹 서비스를 운영할 때는 프로그램의 종류와 배포 방식에 따라 다음 위치를 사용하는 것이 일반적입니다.
+
+| 용도 | 권장 위치 | 예시 |
+|---|---|---|
+| 정적 웹 파일 | `/var/www/<서비스명>` | `/var/www/myapp` |
+| 애플리케이션 실행 파일 | `/opt/<서비스명>` | `/opt/myapp` |
+| 애플리케이션 데이터 | `/var/lib/<서비스명>` | `/var/lib/myapp` |
+| 시스템 서비스 설정 | `/etc/systemd/system/` | `myapp.service` |
+| Nginx 설정 | `/etc/nginx/conf.d/` | `/etc/nginx/conf.d/myapp.conf` |
+| 로그 | `/var/log/nginx/` 또는 `/var/log/<서비스명>/` | `/var/log/nginx/access.log` |
+| 임시 업로드 파일 | `/var/tmp/` 또는 `/var/spool/<서비스명>/` | 업로드 처리 전용 임시 저장소 |
+
+아래는 일반적인 배포 구조입니다.
+
+```text
+/opt/myapp/          애플리케이션 실행 파일 또는 서버 프로그램
+/var/www/myapp/      정적 HTML, CSS, JavaScript 파일
+/etc/nginx/conf.d/   Nginx 가상 호스트 및 프록시 설정
+/var/log/nginx/      Nginx 접속 및 오류 로그
+/var/lib/myapp/      애플리케이션 데이터 및 영구 저장 파일
+```
+
+### 14-1. 정적 웹 사이트
+
+React, Vue, HTML/CSS/JavaScript 빌드 결과물은 일반적으로 다음 위치에 배치합니다.
+
+```text
+/var/www/myapp/
+```
+
+예를 들어 빌드된 파일을 배포하는 경우입니다.
+
+```bash
+sudo mkdir -p /var/www/myapp
+sudo cp -r dist/. /var/www/myapp/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Nginx 설정 예시:
+
+```nginx
+server {
+    listen 80;
+    server_name _;
+
+    root /var/www/myapp;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+설정 파일은 다음 위치에 저장합니다.
+
+```text
+/etc/nginx/conf.d/myapp.conf
+```
+
+### 14-2. 애플리케이션 서버
+
+Spring Boot, Node.js, Python 애플리케이션은 일반적으로 다음 위치에서 실행합니다.
+
+```text
+/opt/myapp/
+```
+
+예:
+
+```text
+/opt/myapp/app.jar
+/opt/myapp/server.js
+/opt/myapp/app.py
+```
+
+애플리케이션은 기본적으로 다음과 같이 별도 포트에서 실행합니다.
+
+```text
+애플리케이션: 127.0.0.1:8080
+Nginx:       0.0.0.0:80
+```
+
+Nginx는 외부 요청을 애플리케이션의 내부 포트로 전달합니다.
+
+```nginx
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+### 14-3. `/health` 경로 위치
+
+이 실습의 `/health`는 실제 폴더가 아니라 Nginx의 위치 설정입니다.
+
+```text
+실제 설정 파일: /etc/nginx/conf.d/health.conf
+가상 요청 경로: /health
+```
+
+설정 내용:
+
+```nginx
+location = /health {
+    access_log off;
+    add_header Content-Type text/plain;
+    return 200 'OK\n';
+}
+```
+
+따라서 다음과 같이 `/var/www/health` 같은 폴더를 만들 필요가 없습니다.
+
+```bash
+curl -i http://localhost/health
+curl -i http://52.65.65.236/health
+sudo nginx -T | grep -n -B2 -A6 'location = /health'
+sudo cat /etc/nginx/conf.d/health.conf
+```
