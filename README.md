@@ -292,19 +292,22 @@ Nginx에서 `/health` 경로를 정상 응답하도록 설정하면 외부 모�
 Amazon Linux 2023에서는 `/etc/nginx/conf.d/` 아래에 설정 파일을 생성합니다.
 
 ```bash
-sudo tee /etc/nginx/conf.d/health.conf > /dev/null <<'EOF'
+sudo tee /etc/nginx/conf.d/default.conf > /dev/null <<'EOF'
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
 
+    root /var/www;
+    index index.html;
+
     location / {
-        return 200 'Welcome to nginx\n';
-        add_header Content-Type text/plain;
+        try_files $uri $uri/ =404;
     }
 
     location = /health {
         access_log off;
+        default_type text/plain;
         add_header Content-Type text/plain;
         return 200 'OK\n';
     }
@@ -425,7 +428,7 @@ OK
 
 ## 6. 헬스 체크 구성 예시
 
-Nginx 설정 예시입니다.
+Nginx 기본 서버의 문서 루트는 `/var/www`로 설정하고, `/health`를 헬스 체크 응답으로 구성합니다.
 
 ```nginx
 server {
@@ -433,20 +436,23 @@ server {
     listen [::]:80 default_server;
     server_name _;
 
+    root /var/www;
+    index index.html;
+
     location / {
-        return 200 'Welcome to nginx\n';
-        add_header Content-Type text/plain;
+        try_files $uri $uri/ =404;
     }
 
     location = /health {
         access_log off;
+        default_type text/plain;
         add_header Content-Type text/plain;
         return 200 'OK\n';
     }
 }
 ```
 
-이 설정으로 외부 요청이 정상적으로 전달되고 있음을 확인할 수 있습니다.
+이 설정으로 `/var/www/index.html`이 기본 웹 문서로 제공되고, `/health`는 상태 확인에 사용됩니다.
 
 ---
 
@@ -857,27 +863,34 @@ server {
 이 실습의 `/health`는 실제 폴더가 아니라 Nginx의 위치 설정입니다.
 
 ```text
-실제 설정 파일: /etc/nginx/conf.d/health.conf
+실제 설정 파일: /etc/nginx/conf.d/default.conf
+기본 문서 루트: /var/www
 가상 요청 경로: /health
 ```
 
 설정 내용:
 
 ```nginx
+root /var/www;
+index index.html;
+
 location = /health {
     access_log off;
+    default_type text/plain;
     add_header Content-Type text/plain;
     return 200 'OK\n';
 }
 ```
 
-따라서 다음과 같이 `/var/www/health` 같은 폴더를 만들 필요가 없습니다.
+따라서 `/health`는 별도의 `/var/www/health` 폴더가 필요 없는 가상 경로입니다.
 
 ```bash
+curl -i http://localhost/
 curl -i http://localhost/health
-curl -i http://52.65.65.236/health
-sudo nginx -T | grep -n -B2 -A6 'location = /health'
-sudo cat /etc/nginx/conf.d/health.conf
+curl -i http://15.135.80.119/
+curl -i http://15.135.80.119/health
+sudo nginx -T | grep -n -B2 -A8 'location = /health'
+sudo cat /etc/nginx/conf.d/default.conf
 ```
 
 ---
