@@ -101,12 +101,22 @@ Route Table에서 0.0.0.0/0 → Internet Gateway 경로를 설정해 인터넷 �
    - 사용자 이름 예시: `cloud-lab-user`
    - AWS Management Console access 및 Programmatic access 선택
    - 권한은 최소 범위로 부여
+
+![실습용 IAM 사용자 목록](./docs/image/image%20copy%202.png)
+
      - 예: EC2 FullAccess, VPC FullAccess, IAMReadOnlyAccess 등
      - 실습 필요가 아닌 `AdministratorAccess`는 부여하지 않음
+
+![IAM 사용자에 부여된 권한](./docs/image/image%20copy%203.png)
+
+![IAM 액세스 키 생성 화면](./docs/image/image%20copy%204.png)
+
 3. Key Pair 생성
    - EC2 > Key pairs > Create key pair
    - 이름 예시: `cloud-lab-key`
    - `.pem` 파일을 로컬에 저장하고 권한 설정 적용
+
+![EC2 키 페어 생성](./docs/image/image%20copy.png)
 
 ```bash
 chmod 400 cloud-lab-key.pem
@@ -124,6 +134,8 @@ AWS 콘솔 메뉴 경로:
 
 실제 VPC ID: `vpc-08ff8511b6dca33c0`
 
+![생성된 VPC 정보](./docs/image/image%20copy%205.png)
+
 ### 4-3. Public Subnet 생성
 
 AWS 콘솔 메뉴 경로:
@@ -140,6 +152,8 @@ AWS 콘솔 메뉴 경로:
 다음 항목을 확인합니다.
 - 서브넷이 VPC에 연결되어 있는지
 - CIDR 범위가 겹치지 않는지
+
+![생성된 퍼블릭 서브넷 정보](./docs/image/image%20copy%206.png)
 
 ### 4-4. Internet Gateway 생성 및 연결
 
@@ -177,6 +191,8 @@ AWS 콘솔 메뉴 경로:
 - 0.0.0.0/0 경로가 존재하는지
 - 실제 Subnet이 연결된 route table이 맞는지
 
+![퍼블릭 라우트 테이블의 서브넷 연결](./docs/image/image%20copy%207.png)
+
 ### 4-6. Security Group 생성
 
 AWS 콘솔 메뉴 경로:
@@ -210,17 +226,25 @@ AWS 콘솔 메뉴 경로:
 - Instance type: `t3.micro`
 - Key pair: `cloud-lab-key`
 - Network settings:
-  - VPC: `vpc-0dd585c4b0581e594`
-  - Subnet: `subnet-0b1945ab44eae2608`
-  - Auto-assign public IP: Enable
-  - Security group: `sg-006f497ca2061e3c0` (`default`)
+
+![EC2 인스턴스 기본 설정](./docs/image/image%20copy%208.png)
+
+- VPC: `vpc-0dd585c4b0581e594`
+- Subnet: `subnet-0b1945ab44eae2608`
+- Auto-assign public IP: Enable
+- Security group: `sg-006f497ca2061e3c0` (`default`)
 - Storage: 8~10 GiB
+
+![EC2 인스턴스 유형 및 키 페어 설정](./docs/image/image%20copy%209.png)
 
 생성 후 인스턴스 정보를 확인합니다.
 - 인스턴스 ID: `i-01386272b6d7d8cd5`
 - 인스턴스 이름: `web-server`
 - Public IPv4 주소: 실제 할당된 값 또는 Elastic IP
 
+![EC2 네트워크 및 스토리지 설정](./docs/image/image%20copy%2010.png)
+
+![EC2 AMI 및 인스턴스 유형 선택](./docs/image/image.png)
 
 서브넷을 퍼블릭 서브넷으로 만들려면 
 서브넷 라우팅 테이블의 경로를 
@@ -233,6 +257,7 @@ SSH 접속 명령 예시:
 
 ```bash
 ssh -i cloud-lab-key.pem ec2-user@<Public-IP>
+15.135.80.119
 ```
 
 인스턴스 내부에서 Nginx를 설치하고 실행합니다.
@@ -307,7 +332,7 @@ OK
 브라우저 또는 터미널에서 다음을 실행해 외부 접근이 가능한지 확인합니다.
 
 ```bash
-curl -i http://52.65.65.236/health
+curl -i http://15.135.80.119/health
 ```
 
 예상 결과:
@@ -319,6 +344,18 @@ OK
 ```
 
 이 결과를 통해 인터넷에서 EC2의 Nginx가 정상적으로 응답하는 것을 확인할 수 있습니다.
+
+#### 외부 `/health` 접속 결과
+
+![외부 health 엔드포인트 접속 결과](./docs/image/image%20copy%2011.png)
+
+#### 기본 Nginx 응답 결과
+
+![EC2 기본 Nginx 페이지 응답 결과](./docs/image/image%20copy%2012.png)
+
+#### SSH 접속 및 로컬/외부 응답 검증
+
+![SSH 접속 후 Nginx와 health 상태 검증](./docs/image/image%20copy%2013.png)
 
 ### 4-11. CLI 명령 전체 예시
 
@@ -361,7 +398,7 @@ aws ec2 run-instances \
 아래 방식 중 B를 선택하여 외부 접근 가능 여부를 검증했습니다.
 
 ### 선택 방식: B. GET http://<퍼블릭IP>/health
-
+15.135.80.119
 - URL: http://<Public IP>/health
 - 응답 상태: 200 OK
 - 응답 본문: OK
@@ -839,3 +876,69 @@ curl -i http://52.65.65.236/health
 sudo nginx -T | grep -n -B2 -A6 'location = /health'
 sudo cat /etc/nginx/conf.d/health.conf
 ```
+
+---
+
+## 15. 확장성 및 비용 대응 방안
+
+단일 EC2 구조는 실습과 소규모 서비스에는 적합하지만, 트래픽 증가 시 단일 장애점과 자원 포화 문제가 발생할 수 있습니다.
+
+### 15-1. 병목 식별 방법
+
+CloudWatch 지표와 애플리케이션 로그를 함께 확인하여 병목 지점을 분류합니다.
+
+| 계층 | 확인 지표 | 병목 판단 기준 | 대응 방향 |
+|---|---|---|---|
+| EC2 인스턴스 | CPUUtilization, NetworkIn/Out, StatusCheckFailed | CPU가 장기간 70% 이상 또는 상태 검사 실패 | 인스턴스 유형 상향 또는 오토 스케일링 검토 |
+| Nginx | 접속 응답 시간, 5xx 비율, 활성 연결 수 | 응답 지연 또는 5xx 증가가 지속됨 | 워커 설정·캐싱·프록시 대상을 점검 |
+| 애플리케이션 | 요청 처리 시간, 큐 대기 시간, 오류율 | 애플리케이션 지연이 네트워크 지표보다 먼저 증가 | 애플리케이션 프로파일링 및 코드 최적화 |
+| 네트워크/보안 | 연결 거부, 타임아웃, Security Group 흐름 | 특정 포트 또는 경로에서만 실패 | 라우팅, SG, IGW와 대상 상태 확인 |
+
+권장 사항:
+- 장애 전후 지표를 같은 시간대에 비교해 원인을 식별합니다.
+- 평균값뿐 아니라 p95 또는 p99 응답 시간과 최대값을 확인합니다.
+- `/health`에는 단순 상태만 반환하고, 데이터베이스·외부 API를 과도하게 검사하지 않습니다.
+- 긴 장애 조사를 위해 EC2 또는 Nginx 로그를 CloudWatch Logs에 보관합니다.
+
+### 15-2. ALB 도입 계획
+
+현재는 실습 구조를 유지하기 위해 단일 EC2와 Nginx로 구성합니다. 다음 조건 중 하나 이상이 충족되면 Application Load Balancer(ALB)를 도입합니다.
+
+- 단일 EC2의 CPU 또는 메모리 사용량이 지속적으로 높음
+- 여러 인스턴스로 확장하거나 무중단 배포가 필요함
+- `/health`를 기반으로 비정상 인스턴스에서 트래픽을 분리해야 함
+- HTTPS 종단, 호스트 기반 라우팅, 또는 다중 서비스 라우팅이 필요함
+
+권장 단계:
+1. Public Subnet 또는 별도의 가용 영역 서브넷에 ALB를 배치합니다.
+2. HTTP와 HTTPS 리스너를 구성하고 ALB 보안 그룹은 80/443만 허용합니다.
+3. `/health`를 대상으로 Target Group 헬스 체크를 설정합니다.
+4. EC2 인스턴스를 Target Group에 등록하거나 Auto Scaling Group과 연동합니다.
+5. 응답 지연, 비정상 대상 수, HTTP 5xx가 임계치를 넘을 때 알람을 설정합니다.
+
+### 15-3. 비용 추적 및 알림 전략
+
+AWS 리소스에는 목적과 비용 추적이 가능하도록 태그를 일관되게 적용합니다.
+
+권장 태그 예시:
+
+| 태그 키 | 예시 값 | 용도 |
+|---|---|---|
+| `Project` | `cloud-lab` | 프로젝트별 비용 구분 |
+| `Environment` | `lab` 또는 `prod` | 환경별 비용 구분 |
+| `Owner` | `cloud-lab-user` | 담당자 식별 |
+| `CostCenter` | `training` | 부서 또는 비용 센터 그룹 |
+| `AutoStop` | `enabled` | 실습 종료 시 자동 중지 대상 표시 |
+
+비용 대응 전략:
+- 실습용 EC2는 사용하지 않을 때 중지하고, 종료 시 EBS와 Elastic IP를 함께 정리합니다.
+- 예산 알림은 무료 한도와 인스턴스 규모에 맞춰 월 예산의 50%, 80%, 100% 도달 시 알림을 설정합니다.
+- Billing > Budgets에 AWS Budget을 생성하고 이메일 또는 SNS 알림을 연결합니다.
+- Cost Explorer에서 `Project`, `Environment`, `Owner` 태그 기준으로 일일/월별 비용을 확인합니다.
+- CloudWatch 또는 SNS 알람은 비용 이상 징후뿐 아니라 EC2 상태, 네트워크 오류, CPU 임계치와 연계합니다.
+- 실습 종료 후에는 `aws-lab-down.sh`를 실행하여 과금 가능 리소스가 남지 않았는지 확인합니다.
+
+간단한 운영 임계치 예시:
+- EC2 CPUUtilization 15분 평균이 70% 이상이면 확장 검토
+- 응답 시간 p95가 1초 이상이거나 5xx 비율이 5분간 5% 이상이면 장애 원인 조사
+- 월 예산의 80% 도달 시 즉시 검토 알림, 100% 도달 시 긴급 알림
